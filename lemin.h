@@ -17,6 +17,7 @@ typedef struct s_room
 	int ant;
 	int moved;
 	struct s_room *next;
+	struct s_room *prev;
 	struct s_connect *connects;
 	int score;
 	int start_end;
