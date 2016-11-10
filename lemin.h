@@ -23,6 +23,14 @@ typedef struct s_room
 	int start_end;
 
 }		t_room;
+typedef struct s_norm
+{
+	char *line;
+	size_t size;
+	int phase;
+	int nb_ants;
+	t_room *rooms;
+}		t_norm;
 
 
 #endif
