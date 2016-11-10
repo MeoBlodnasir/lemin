@@ -28,16 +28,47 @@ void	print_rooms(t_room *rooms)
 	//ft_printf("END ROOM PRINT\n");
 }
 
-t_room	*make_room(t_room *rooms, char *line, int phase)
+int	check_room(char *line)
 {
 	int i = 0;
-	t_room *room = (t_room*)malloc(sizeof(t_room));
-	room->full = 0;
+	int sp = 0;
+	while (line[i])
+	{
+		if (line[i] == ' ')
+			sp++;
+		if ( (sp > 1 && !ft_isdigit(line[i]) && line[i] != ' ' && line[i] != '\n') || sp > 2)
+		{
+			ft_printf("Bad room\n");
+			return -1;
+		}
+		i++;
+	}
+	if (sp != 2)
+		return (-1);
+	return (0);
+}
+
+t_room *return_empty(t_room **room)
+{
+
+		free((*room)->name);
+		free(*room);
+		return NULL;
+}
+
+t_room *fill_room(t_room *room, int phase, char *line)
+{
+	int i;
+	char *name;
+
+	i = 0;
 	while (line[i] && line[i] != ' ')
 		i++;
-	char *name = ft_strsub(line, 0,i);
+	name = ft_strsub(line, 0,i);
 	room->name = ft_strtrim(name);
-	free(name);
+	if (ft_strcmp(room->name, "") == 0)
+		return return_empty(&room);
+	room->full = 0;
 	room->next = NULL;
 	room->prev = NULL;
 	if (phase == 2)
@@ -48,14 +79,32 @@ t_room	*make_room(t_room *rooms, char *line, int phase)
 	room->start_end = phase;
 	room->ant = 0;
 	room->moved;
-	if (rooms == NULL)
-		return room;
-	t_room *tmp = rooms;
+	free(name);
+	return room;
+}
+
+int make_room(t_room **rooms, char *line, int phase)
+{
+	if (check_room(line) == -1)
+		return (-1);
+	t_room *room = (t_room*)malloc(sizeof(t_room));
+
+	room = fill_room(room, phase, line);	
+
+	if (room == NULL)
+		return (-1);
+
+	if (*rooms == NULL)
+	{
+		*rooms = room;
+		return (0);
+	}
+	t_room *tmp = *rooms;
 	while (tmp->next != NULL)
 		tmp = tmp->next;
 	tmp->next = room;
 	room->prev = tmp;
-	return rooms;
+	return 0;
 }
 
 void	set_connection(t_room *tmp, t_room *tmp2)
@@ -94,7 +143,7 @@ int	make_connect(t_room *rooms, char *line, int phase)
 	t_room *tmp2 = rooms;
 	if (tab[0] == NULL || tab[1] == NULL || tab[2] != NULL)
 	{
-		//ft_printf("bad connection\n");
+		ft_printf("Bad connection\n");
 		return -1;
 	}
 	char *str = ft_strtrim(tab[0]);
@@ -118,8 +167,8 @@ int	make_connect(t_room *rooms, char *line, int phase)
 	if (ft_strcmp(tmp->name, str) != 0 || ft_strcmp(tmp2->name, str2) != 0)
 
 	{
-		////ft_printf("%s = %s and %s = %s\n", tmp->name, str, tmp2->name, str2);
-		////ft_printf("room not found\n");
+		//ft_printf("%s = %s and %s = %s\n", tmp->name, str, tmp2->name, str2);
+		ft_printf("Connection doesnt correspond to any room\n");
 		return -1;
 	}
 	free(str);
@@ -134,10 +183,18 @@ int	handle_line(t_room **rooms, int phase, char *line)
 		return 0;
 	if (ft_strchr(line, ' ') != NULL)
 	{
-		*rooms = make_room(*rooms, line, phase);
+		if (line[0] != 'L')
+			return make_room(rooms, line, phase);
+	}
+	else if (*rooms)
+	{
+		return make_connect(*rooms, line, phase);
 	}
 	else
-		return make_connect(*rooms, line, phase);
+	{
+		ft_printf("No rooms\n");
+		return (-1);
+	}
 
 }
 
@@ -167,8 +224,8 @@ t_room *last_room(t_room *rooms)
 			return tmp;
 		tmp = tmp->next;
 	}
-	////ft_printf("last room not found\n");
-	exit(0);
+	ft_printf("last room not found\n");
+	return NULL;
 }
 
 
@@ -187,11 +244,22 @@ void	move_ants(int nb_ants, t_room *rooms, t_room *last)
 	{
 		if (tmp->start_end == 1)
 		{
+			if (tmp->score == -1)
+			{
+				ft_printf("No path possible\n");
+				return ;
+			}
 			tmp->full = nb_ants;
 			tmp->ant = nb_ants;
+			break ;
 
 		}
 		tmp = tmp->next;
+	}
+	if (tmp == NULL)
+	{
+		ft_printf("No start room\n");
+		return;
 	}
 	while (last->full < nb_ants)
 	{
@@ -317,30 +385,46 @@ int main()
 		{
 			if((nb_ants = ft_atoi(line)) == 0)
 			{
-				////ft_printf("No ants\n");
-				break;
+				ft_printf("No ants\n");
+				return (0);
 			}
+			else if (nb_ants < 0)
+			{
+				ft_printf("Invalid number of ants\n");
+				return (0);
+			}
+			ft_printf("%d\n", nb_ants);
 			continue;
 		}
 		if (ft_strcmp(line, "##start\n") == 0)
 		{
 			phase = 1;
+			ft_printf("%s", line);
 			continue;
 		}
 		else if (ft_strcmp(line, "##end\n") == 0)
 		{
 			phase = 2;
+			ft_printf("%s", line);
 			continue;
 		}
 		if (handle_line(&rooms, phase, line) == -1)
 			break;
+		if (line[0] && line[0] != '#')
+			ft_printf("%s", line);
 		phase = 0;
 	}
-
+	ft_printf("\n");
+	if (!rooms)
+		return (0);
 	t_room *last = last_room(rooms);
+	if (last == NULL)
+		return (0);
 	assign_score(&last, 1);
 	//rooms = sort_rooms(rooms);
-	last = last_room(rooms);
-	print_rooms(rooms);
+	/*last = last_room(rooms);
+	  if (last == NULL)
+	  return (0);*/
+	//print_rooms(rooms);
 	move_ants(nb_ants, rooms, last);
 }
