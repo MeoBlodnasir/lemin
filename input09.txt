@@ -1,0 +1,10 @@
+#map qui va pas au bout
+100
+##start
+start 0 0
+##end
+end 0 10
+9 8 5
+3 2 5
+start-9
+3-end
